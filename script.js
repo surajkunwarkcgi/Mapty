@@ -11,65 +11,88 @@ const inputDuration = document.querySelector('.form__input--duration');
 const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
 
-let map, mapEvent;
+//creating one parent class
+class App {
+  //private
+  #map;
+  #mapEvent;
 
-if (navigator.geolocation)
-  navigator.geolocation.getCurrentPosition(
-    //when success
-    function (position) {
-      //destructuring
-      const { latitude } = position.coords;
-      const { longitude } = position.coords;
-      console.log(`https://www.google.co.jp/maps/@${latitude},${longitude}`);
+  constructor() {
+    this._getPosition();
 
-      const coords = [latitude, longitude];
-      map = L.map('map').setView(coords, 13);
+    form.addEventListener('submit', this._newWorkout.bind(this));
 
-      L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      }).addTo(map);
+    inputType.addEventListener('change', this._toggleElevationField);
+  }
 
-      //adding event listner, whenever we click on the map
-      map.on('click', function (mapE) {
-        mapEvent = mapE;
-        form.classList.remove('hidden');
-        inputDistance.focus();
-      });
-    },
-    //when error
-    function () {
-      alert('Could not get your position.');
-    }
-  );
+  _getPosition() {
+    if (navigator.geolocation)
+      navigator.geolocation.getCurrentPosition(
+        //when success and _loadMap is a regualr function call
+        //so we need to bind it to use 'this' properly
+        this._loadMap.bind(this),
+        //when error
+        function () {
+          alert('Could not get your position.');
+        }
+      );
+  }
 
-form.addEventListener('submit', function (e) {
-  e.preventDefault();
+  _loadMap(position) {
+    //destructuring
+    const { latitude } = position.coords;
+    const { longitude } = position.coords;
+    console.log(`https://www.google.co.jp/maps/@${latitude},${longitude}`);
 
-  //clear input fields
-  inputDistance.value =
-    inputDuration.value =
-    inputCadence.value =
-    inputElevation.value =
-      '';
-  //display marker
-  const { lat, lng } = mapEvent.latlng;
-  L.marker([lat, lng])
-    .addTo(map)
-    .bindPopup(
-      L.popup({
-        maxWidth: 250,
-        minWidth: 100,
-        autoClose: false,
-        closeOnClick: false,
-        className: 'running-popup',
-      })
-    )
-    .setPopupContent('popup text')
-    .openPopup();
-});
+    const coords = [latitude, longitude];
+    this.#map = L.map('map').setView(coords, 13);
 
-inputType.addEventListener('change', function () {
-  inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
-  inputCadence.closest('.form__row').classList.toggle('form__row--hidden');
-});
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(this.#map);
+
+    //adding event listner, whenever we click on the map
+    this.#map.on('click', this._showForm.bind(this));
+  }
+
+  _showForm(mapE) {
+    this.#mapEvent = mapE;
+    form.classList.remove('hidden');
+    inputDistance.focus();
+  }
+
+  _toggleElevationField() {
+    inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
+    inputCadence.closest('.form__row').classList.toggle('form__row--hidden');
+  }
+
+  _newWorkout(e) {
+    e.preventDefault();
+
+    //clear input fields
+    inputDistance.value =
+      inputDuration.value =
+      inputCadence.value =
+      inputElevation.value =
+        '';
+    //display marker
+    const { lat, lng } = this.#mapEvent.latlng;
+    L.marker([lat, lng])
+      .addTo(this.#map)
+      .bindPopup(
+        L.popup({
+          maxWidth: 250,
+          minWidth: 100,
+          autoClose: false,
+          closeOnClick: false,
+          className: 'running-popup',
+        })
+      )
+      .setPopupContent('popup text')
+      .openPopup();
+  }
+}
+
+//creating an object
+const app = new App();
